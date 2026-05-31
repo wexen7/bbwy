@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Canlı Güneş Verileri</title>
+<style>
+:root {
+  --primary-bg: #0f172a;
+  --button-hover: rgba(255,255,255,0.1);
+  --transition-speed: 0.3s;
+  --scale: 0.72;
+}
+body {
+  margin: 0;
+  font-family: 'Tahoma', Segoe UI, Geneva, Verdana, sans-serif;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f8fafc;
+}
+.button-container {
+  display: flex;
+  align-items: center;
+  height: calc(48px * var(--scale));
+  padding: 0 calc(16px * var(--scale));
+  background-color: var(--primary-bg);
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 200;
+  justify-content: space-between;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  backdrop-filter: blur(10px);
+  /* overflow-x: auto BURADAN KALDIRILDI - AÇILIR MENÜLERİ BOZUYORDU */
+}
+.button-group-left, .button-group-right {
+  display: flex;
+  align-items: center;
+  gap: calc(4px * var(--scale));
+}
+.button-container button {
+  border: none;
+  padding: calc(8px * var(--scale)) calc(12px * var(--scale));
+  font-size: calc(14px * var(--scale));
+  border-radius: calc(8px * var(--scale));
+  cursor: pointer;
+  color: white;
+  font-weight: 500;
+  transition: all var(--transition-speed) ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 calc(2px * var(--scale)) calc(4px * var(--scale)) rgba(0,0,0,0.2);
+  background: linear-gradient(135deg, var(--color-start, #6A5ACD), var(--color-end, #7B68EE));
+  white-space: nowrap;
+}
+.button-container button:hover {
+  transform: translateY(calc(-2px * var(--scale)));
+  box-shadow: 0 calc(4px * var(--scale)) calc(8px * var(--scale)) rgba(0,0,0,0.25);
+}
+.button-container button:active {
+  transform: translateY(0) scale(0.94);
+  box-shadow: 0 calc(1px * var(--scale)) calc(2px * var(--scale)) rgba(0,0,0,0.2);
+}
+
+/* AKTİF BUTON STİLİ */
+.button-container button.active,
+.dropdown-content button.active,
+.start-menu-content button.active {
+  box-shadow: 0 0 0 calc(2px * var(--scale)) #fff, 0 0 calc(10px * var(--scale)) var(--color-start);
+  transform: scale(0.96);
+  filter: brightness(1.2);
+}
+
+.button-container button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+.button-container button:hover::after { left: 100%; }
+
+/* SAĞ TARAFTAKİ YAZILARI BÜYÜTME İŞLEMİ */
+.button-group-right > button,
+.dropdown > button,
+.start-menu > button {
+  font-size: calc(17px * var(--scale));
+}
+
+/* RENKLER */
+#btnSlayt       { --color-start: #6A5ACD; --color-end: #7B68EE; }
+#btnSplitMerk   { --color-start: #444;    --color-end: #666;    }
+#btnGunes       { --color-start: #FF8C00; --color-end: #FFA500; }
+#btnNOAA        { --color-start: #556B2F; --color-end: #6B8E23; }
+#btnBARADY      { --color-start: #8B0000; --color-end: #B22222; }
+#btnCALISTO     { --color-start: #033a69; --color-end: #8cf2f5; }
+#btnUCalgary    { --color-start: #78082d; --color-end: #fc0355; }
+#btnCHIXRAY     { --color-start: #8A2BE2; --color-end: #9370DB; }
+#btnSIDBE       { --color-start: #FF8C00; --color-end: #FFA07A; }
+#btnDeprem      { --color-start: #FF1493; --color-end: #FF69B4; }
+#btnLasp        { --color-start: #1E90FF; --color-end: #00BFFF; }
+#btnDemon       { --color-start: #FF4500; --color-end: #FF6347; }
+#btnNem         { --color-start: #007BFF; --color-end: #1E90FF; }
+#btnEsmc        { --color-start: #8B4513; --color-end: #A0522D; }
+#btnIonSansa    { --color-start: #800080; --color-end: #9932CC; }
+#btnOk1dub      { --color-start: #228B22; --color-end: #32CD32; }
+#btnAurora      { --color-start: #00A86B; --color-end: #3CB371; }
+#btnXray        { --color-start: #FF69B4; --color-end: #FFB6C1; }
+#btnSpektrograf { --color-start: #4B0082; --color-end: #8A2BE2; }
+#btnChina       { --color-start: #228B22; --color-end: #32CD32; }
+#btnRATAN       { --color-start: #228B22; --color-end: #32CD32; }
+.neutron-btn    { --color-start: #36454F; --color-end: #4C516D; }
+#btnMAG       { --color-start: #228B22; --color-end: #32CD32; }
+#btnNEU       { --color-start: #79117a; --color-end: #b324f0; }
+#btnTUN       { --color-start: #79117a; --color-end: #b324f0; }
+#btnPLZ       { --color-start: #79117a; --color-end: #b324f0; }
+
+
+/* EN SAĞDAKİ YENİ MENÜ (☰) BUTONU */
+#btnDigerMenu   { 
+  --color-start: #FFD700; 
+  --color-end: #FF8C00;   
+  color: #000;            
+  font-size: calc(26px * var(--scale)) !important; 
+  font-weight: 900;
+  padding: calc(4px * var(--scale)) calc(18px * var(--scale));
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.6); 
+}
+#btnDigerMenu:hover {
+  box-shadow: 0 0 18px rgba(255, 215, 0, 0.9);
+}
+
+/* MEVCUT DROPDOWN STİLLERİ */
+.dropdown {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 10px;
+  margin-bottom: -10px;
+}
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #2c3e50;
+  min-width: 150px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.3);
+  z-index: 300;
+  border-radius: calc(6px * var(--scale));
+  padding: calc(4px * var(--scale)) 0;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.dropdown-content button {
+  width: 100%;
+  text-align: left;
+  border-radius: 0;
+  box-shadow: none;
+  background: none;
+  padding: calc(10px * var(--scale)) calc(16px * var(--scale));
+}
+.dropdown-content button:hover {
+  background-color: var(--button-hover);
+  transform: none;
+  box-shadow: none;
+}
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+
+/* TIKLAMASIZ (MOUSE İLE GELİNCE) AÇILAN YENİ MENÜ STİLLERİ */
+.start-menu {
+  position: relative;
+  display: inline-block;
+  margin-left: calc(4px * var(--scale));
+  padding-bottom: 12px; 
+  margin-bottom: -12px;
+}
+.start-menu-content {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 15px; 
+  background-color: var(--primary-bg);
+  min-width: 150px;
+  box-shadow: 0px 8px 24px rgba(0,0,0,0.5);
+  z-index: 300; 
+  border-radius: 8px;
+  padding: 10px;
+  flex-direction: column;
+  gap: 8px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.start-menu:hover .start-menu-content {
+  display: flex; 
+}
+.start-menu-content button {
+  width: 100%;
+  text-align: center;
+}
+
+/* ALT MENÜLER İÇİNDEKİ BUTONLARIN YAZI BOYUTLARI */
+.dropdown-content button, 
+.start-menu-content button {
+  font-size: calc(15px * var(--scale)) !important; 
+}
+
+iframe {
+  width: 100%;
+  flex: 1;
+  border: none;
+  margin-top: calc(48px * var(--scale));
+  display: block;
+  transform: scale(1);
+  transform-origin: top left;
+  transition: all 0.3s ease;
+}
+#sansaInfo {
+  position: fixed;
+  top: calc(54px * var(--scale));
+  right: 10px;
+  width: 300px;
+  background-color: rgba(255,255,255,0.95);
+  color: #1e293b;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: calc(13px * var(--scale));
+  display: none;
+  z-index: 120;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  border-left: 4px solid #800080;
+  line-height: 1.5;
+}
+
+#xrayArchive, #nancayContainer {
+  display: none;
+  width: 100%;
+  height: 100vh;
+  box-sizing: border-box;
+  padding-top: calc(48px * var(--scale));
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  color: white;
+}
+#xrayArchive { background-color: #1e293b; }
+#nancayContainer { background-color: #4C4C4C; }
+
+#xrayArchive div.controls, #nancayContainer div.controls {
+  padding: 0;
+  margin: 5px 0 10px 0;
+  background: none;
+  flex-shrink: 0;
+  text-align: center;
+}
+#xrayArchive div.controls label,
+#xrayArchive div.controls input,
+#xrayArchive div.controls button,
+#nancayContainer div.controls button,
+#nancayContainer div.controls span {
+  padding: 5px 9px;
+  font-size: 13px;
+  margin: 0 3px;
+  vertical-align: middle;
+  border-radius: 4px;
+  border: 1px solid #475569;
+  background-color: #334155;
+  color: white;
+}
+#xrayArchive div.controls button,
+#nancayContainer div.controls button {
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-speed) ease;
+}
+#xrayArchive div.controls button { background: linear-gradient(135deg, #FF69B4, #FFB6C1); }
+#nancayContainer div.controls button { background: linear-gradient(135deg, #8A2BE2, #9966CC); }
+
+#xrayArchive div.controls button:hover,
+#nancayContainer div.controls button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+}
+
+#xrayImageContainer, #nancayImageContainer {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding-bottom: 20px;
+}
+#xrayImage, #nancayImage {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+#xrayImage { transform: scale(1.35); }
+#nancayImage { transform: scale(1.25); }
+
+#cookieMask {
+  position: fixed;
+  top: calc(48px * var(--scale));
+  left: 0;
+  width: 100%;
+  height: calc(100vh - 48px * var(--scale));
+  background: #fff;
+  opacity: 0;
+  z-index: 150;
+  pointer-events: none;
+}
+#reloadDemon {
+  position: fixed;
+  right: 16px;
+  top: calc(56px * var(--scale));
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 250;
+  background: rgba(255,255,255,0.9);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  transition: all var(--transition-speed) ease;
+}
+#reloadDemon:hover {
+  transform: scale(1.1);
+  background: white;
+}
+
+@media (max-width: 1200px) {
+  .button-container {
+    height: auto;
+    flex-wrap: wrap;
+    padding: calc(8px * var(--scale));
+  }
+  .button-group-left, .button-group-right {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: calc(4px * var(--scale));
+    width: 100%;
+  }
+  iframe { margin-top: calc(80px * var(--scale)); }
+  #reloadDemon { top: calc(88px * var(--scale)); }
+  #sansaInfo { top: calc(86px * var(--scale)); }
+}
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+</style>
+</head>
+<body>
+
+<div class="button-container">
+  <div class="button-group-left">
+    <!-- SOL TARAFTAKİ BUTONLAR -->
+    <button id="btnSlayt" data-action="local" data-url="Slayt.html">SLAYT</button>
+    <button id="btnSplitMerk" data-action="local" data-url="splitmerk.html">SPLITMERK</button>
+    <button id="btnGunes" data-action="local" data-url="gunes.html">GÜNEŞ</button>
+    <button id="btnNOAA" data-action="local" data-url="NOAA.html">NOAA</button>
+    <button id="btnBARADY" data-action="local" data-url="barady.html">BARADY</button>
+	
+		<div class="dropdown">
+  <button id="btnMAG">🧲 MAG &#9662;</button>
+  <div class="dropdown-content">
+    <button data-action="local" data-url="Mag.html">Magnetic</button>
+    <button data-action="local" data-url="Mag Alt İstasyonlar.html">Alt İstasyonlar ↺</button>
+  </div>
+</div>
+	
+	
+	
+	<div class="dropdown">
+  <button id="btnCALISTO">CALISTO &#9662;</button>
+  <div class="dropdown-content">
+    <button data-action="local" data-url="calistoOZETv2.html">Calisto Özet</button>
+    <button data-action="local" data-url="calistoDB v2.html">DB</button>
+    <button data-action="local" data-url="calisto tek istasyon.html">tek istasyon odaklı ⇄</button>
+	<button data-action="local" data-url="callisto.html">Saatlik güncel veri ⇄</button>
+  </div>
+</div>
+	
+	
+<div class="dropdown">
+  <button id="btnUCalgary">UCalgary &#9662;</button>
+  <div class="dropdown-content">
+    <button data-action="local" data-url="UCalgary.html">UCalgary</button>
+    <button data-action="local" data-url="UCalgary-gecmis.html">UCalgary ↺</button>
+    <button data-action="local" data-url="UCalgary-karsilastirma.html">UCalgary ⇄</button>
+  </div>
+</div>
+	<button id="btnGO-RIO" data-action="local" data-url="GO-Rio.html">Go Rio</button>
+    <button id="btnCHIXRAY" data-action="local" data-url="chxray.html">CHI XRAY</button>
+    <button id="btnSIDBE" data-action="local" data-url="sidc.bekolaj.html">SID.BE</button>
+    <button id="btnDeprem" data-action="local" data-url="deprem.html">DEPREM</button>
+	
+
+	
+	
+  </div>
+  
+  <div class="button-group-right">
+    <!-- SABİT KALMASINI İSTEDİĞİNİZ BUTONLAR -->
+	<button id="btnSUN" data-action="local" data-url="SUN.html">🌞 ↻</button>
+    <button id="btnLasp" data-action="iframe" data-url="https://lasp.colorado.edu/eve/data_access/eve-one-minute-averages/index.html">LASP</button>
+    <button id="btnDEMON" data-action="demon" data-url="https://www.sidc.be/solardemon/flares.php">S.DEMON</button>
+	<button id="btnTUN" data-action="iframe" data-url="http://betajbk.proxy.rx-888.com:8073/?f=0.001/40,4000usbz9&1hz">TUNE</button>
+	<button id="btnPLZ" data-action="iframe" data-url="https://secures.nict.go.jp/geo/en/">TUNE</button>
+    <button id="btnXray" data-action="xray">XRay Arşiv</button>
+
+    <!-- MEVCUT AÇILIR MENÜLER (Spektrograf ve Neutron Mon.) -->
+    <div class="dropdown">
+      <button id="btnSpektrograf">Spektrograf &#9662;</button>
+      <div class="dropdown-content">
+        <button data-action="nancay">NANCAY</button>
+        <button data-action="iframe" data-url="https://realtime.obs-nancay.fr/orfees/">ORFEES</button>
+        <button data-action="orfess2">ORFESS 2</button>
+        <button data-action="iframe" data-url="http://sprg.ssl.berkeley.edu/~tohban/browser/">ARŞİV</button>
+      </div>
+    </div>
+
+    <div class="dropdown">
+      <button class="neutron-btn">NEUTRON Mon. &#9662;</button>
+      <div class="dropdown-content">
+        <button data-action="iframe" data-url="https://www.nmdb.eu/nest/draw_graph.php?formchk=1&stations[]=ICRB&stations[]=ICRO&stations[]=ATHN&stations[]=MXCO&stations[]=CALM&stations[]=ROME&stations[]=AATB&stations[]=BKSN&stations[]=JUNG&stations[]=JUNG1&stations[]=LMKS&stations[]=IRKT&stations[]=DRBS&stations[]=NEWK&stations[]=KIEL2&stations[]=YKTK&stations[]=KERG&stations[]=CALG&stations[]=OULU&stations[]=APTY&stations[]=TXBY&stations[]=FSMT&stations[]=INVK&stations[]=JBGO&stations[]=NAIN&stations[]=PWNK&stations[]=THUL&stations[]=MWSB&stations[]=MWSN&stations[]=SOPB&stations[]=SOPO&stations[]=DOMB&stations[]=DOMC&stations[]=TERA&tabchoice=revori&dtype=corr_for_efficiency&tresolution=5&yunits=1&shift=2&date_choice=last&last_days=1&last_label=days_label&output=plot&ygrid=1&mline=1&transp=0&fontsize=1&text_color=222222&background_color=FFFFFF&margin_color=FFFFFF">1 Saat</button>
+        <button data-action="iframe" data-url="https://www.nmdb.eu/nest/draw_graph.php?formchk=1&stations[]=ICRB&stations[]=ICRO&stations[]=ATHN&stations[]=MXCO&stations[]=CALM&stations[]=ROME&stations[]=AATB&stations[]=BKSN&stations[]=JUNG&stations[]=JUNG1&stations[]=LMKS&stations[]=IRKT&stations[]=DRBS&stations[]=NEWK&stations[]=KIEL2&stations[]=YKTK&stations[]=KERG&stations[]=CALG&stations[]=OULU&stations[]=APTY&stations[]=TXBY&stations[]=FSMT&stations[]=INVK&stations[]=JBGO&stations[]=NAIN&stations[]=PWNK&stations[]=THUL&stations[]=MWSB&stations[]=MWSN&stations[]=SOPB&stations[]=SOPO&stations[]=DOMB&stations[]=DOMC&stations[]=TERA&tabchoice=revori&dtype=corr_for_efficiency&tresolution=5&yunits=1&shift=2&date_choice=last&last_days=12&last_label=hours_label&output=plot&ygrid=1&mline=1&transp=0&fontsize=1&text_color=222222&background_color=FFFFFF&margin_color=FFFFFF">12 Saat</button>
+        <button data-action="iframe" data-url="https://www.nmdb.eu/nest/draw_graph_HC_last1.php">48 Saat</button>
+		<button id="btnNEU" data-action="iframe" data-url="https://neutronm.bartol.udel.edu/~pyle/json/Simpson_10min.html">Simpson Neutron monitör</button>
+		<button id="btnNEU" data-action="iframe" data-url="https://neutronm.bartol.udel.edu/~pyle/json/BartolNM_10min.html">Bartol Neutron monitör</button>
+		<button id="btnNEU" data-action="iframe" data-url="https://neutronm.bartol.udel.edu/~pyle/json/Spectral_10min.html">Spectral monitör</button>
+		<button id="btnNEU" data-action="iframe" data-url="https://neutronm.bartol.udel.edu/~pyle/json/SSE_10min.html">Spaceship Earth monitör</button>
+		
+		
+		
+		
+      </div>
+    </div>
+
+    <!-- EN SAĞDAKİ YENİ AÇILIR MENÜ (☰) - Mouse Hover ile Açılır -->
+    <div class="start-menu">
+      <button id="btnDigerMenu" title="Diğer Araçlar">☰</button>
+      <div class="start-menu-content">
+        <button id="btnNEM" data-action="iframe" data-url="https://www.theweather.com/weather-maps/humidity.html">NEM</button>
+        <button id="btnEsmc" data-action="iframe" data-url="https://www.emsc.eu/">ESMC</button>
+        <button id="btnIonSansa" data-action="sansa" data-url="https://spaceweather.sansa.org.za/products-and-services/current-conditions/fof2-data">ION/SANSA</button>
+        <button id="btnOk1dub" data-action="iframe" data-url="https://ok1dub.cz/vlf/index_2025.php">ok1dub</button>
+        <button id="btnAURORA" data-action="iframe" data-url="https://aurora.mtwetter.de/index.php?nightMode=_nightMode&autoUpdate=_autoUpdate">Aurora</button>
+        <button id="btnChina" data-action="iframe" data-url="http://47.104.87.104/SRData/CBSm/dailyView/2026/">Çin 600 Mhz</button>
+        <button id="btnRATAN" data-action="iframe" data-url="http://82.179.38.132/cgi-bin/ion-p?ION__E1=Analysis%3Aion%3A%2F%2Frat_search.ion&Analysis.x=622&Analysis.y=212">RATAN 3-17 Ghz</button>
+
+		
+		
+		
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="cookieMask"></div>
+<iframe id="dataFrame" src="" sandbox="allow-same-origin allow-scripts allow-popups"></iframe>
+
+<div id="sansaInfo">
+  <strong>foF2 – Sinyal Tavan Frekansı</strong><br>
+  Yüksek → güçlü sinyal<br>
+  Düşük → zayıf sinyal<br><br>
+  <strong>hmF2 – Yükseklik</strong><br>
+  Katman yüksekliği iletişim mesafesini belirler.<br><br>
+  <strong>Özet:</strong> Dünya'nın iyonosfer "nabzı".
+</div>
+
+<div id="xrayArchive">
+  <div class="controls">
+    <label for="startDate">Başlangıç:</label>
+    <input type="datetime-local" id="startDate">
+    <label for="endDate">Bitiş:</label>
+    <input type="datetime-local" id="endDate">
+    <button id="loadXrayBtn">Getir</button>
+  </div>
+  <div id="xrayImageContainer">
+    <img id="xrayImage" src="" alt="X-Ray Flux Görüntüsü">
+  </div>
+</div>
+
+<div id="nancayContainer">
+  <div class="controls">
+    <button id="nancayPrevBtn">&lt; Geri</button>
+    <span id="nancayDateDisplay"></span>
+    <button id="nancayNextBtn">İleri &gt;</button>
+  </div>
+  <div id="nancayImageContainer">
+    <img id="nancayImage" src="" alt="Nancay Spektrograf Görüntüsü">
+  </div>
+</div>
+
+<script>
+const dataFrame = document.getElementById("dataFrame");
+const xrayArchiveContainer = document.getElementById("xrayArchive");
+const sansaInfoBox = document.getElementById("sansaInfo");
+const nancayContainer = document.getElementById("nancayContainer");
+const body = document.body;
+
+let currentNancayDate = null;
+
+function resetUI() {
+    body.style.backgroundColor = "#f8fafc";
+    dataFrame.style.display = "block";
+    dataFrame.style.transform = "scale(1)";
+    dataFrame.style.transformOrigin = "top left";
+    xrayArchiveContainer.style.display = "none";
+    nancayContainer.style.display = "none";
+    sansaInfoBox.style.display = "none";
+    
+    const reloadBtn = document.getElementById("reloadDemon");
+    if (reloadBtn) {
+        reloadBtn.remove();
+    }
+}
+
+function hideCookiePopup() {
+    document.getElementById("cookieMask").style.display = "block";
+    setInterval(() => {
+        document.querySelectorAll("*").forEach(el => {
+            if (el.closest && (el.closest('.button-container') || el.closest('.start-menu-content'))) return;
+
+            if (getComputedStyle(el).zIndex > 300 || (el.innerText && el.innerText.match(/cookie|çerez/i))) {
+                el.style.display = "none";
+                el.style.visibility = "hidden";
+            }
+        });
+    }, 500);
+}
+
+function showIframe(url) {
+    resetUI();
+    dataFrame.src = url;
+    hideCookiePopup();
+}
+
+function showDemon(url) {
+    resetUI();
+    dataFrame.src = url;
+    dataFrame.style.transform = "scale(1.35)";
+    dataFrame.style.transformOrigin = "top left";
+
+    let r = document.createElement("div");
+    r.id = "reloadDemon";
+    r.innerText = "🔄";
+    r.title = "Hard Reload";
+    r.onclick = () => {
+        dataFrame.src = dataFrame.src.split('?')[0] + "?cachebuster=" + new Date().getTime();
+    };
+    body.appendChild(r);
+}
+
+function showSansaInfo(url) {
+    showIframe(url);
+    sansaInfoBox.style.display = "block";
+}
+
+function showLocal(file) {
+    resetUI();
+    dataFrame.src = file;
+}
+
+function showXrayArchive() {
+    resetUI();
+    dataFrame.style.display = "none";
+    xrayArchiveContainer.style.display = "flex";
+    body.style.backgroundColor = "#1e293b";
+    
+    const now = new Date();
+    const end = new Date();
+    const start = new Date(now.getTime() - (14 * 24 * 60 * 60 * 1000));
+
+    document.getElementById("startDate").value = start.toISOString().slice(0, 16);
+    document.getElementById("endDate").value = end.toISOString().slice(0, 16);
+    
+    loadXrayImage();
+}
+
+function showOrfess2() {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const dateString = `${year}${month}${day}`;
+    const url = `https://secchirh.obspm.fr/spip.php?page=survey&hour=day&survey_type=1&dayofyear=${dateString}`;
+    showIframe(url);
+}
+
+function loadXrayImage() {
+    const s = document.getElementById("startDate").value;
+    const e = document.getElementById("endDate").value;
+    if (!s || !e) return;
+
+    const[sYMD, sHM] = s.split("T");
+    const[eYMD, eHM] = e.split("T");
+    const sTime = sHM.replace(":", "") + "00";
+    const eTime = eHM.replace(":", "") + "00";
+    
+    const url = `https://plot.polarlicht-vorhersage.de/goes/${sYMD}_${sTime}_${eYMD}_${eTime}.png`;
+    document.getElementById("xrayImage").src = url;
+}
+
+function generateNancayUrl(date) {
+    const year = String(date.getFullYear()).slice(-2);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    return `https://bass2000.obspm.fr/bass2000/data/pub/decam/${year}${month}/S${year}${month}${day}.png`;
+}
+
+function updateNancayView(date) {
+    currentNancayDate = date;
+    const url = generateNancayUrl(date);
+    document.getElementById('nancayImage').src = url;
+    document.getElementById('nancayDateDisplay').textContent = date.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function showNancay() {
+    resetUI();
+    dataFrame.style.display = "none";
+    nancayContainer.style.display = "flex";
+    body.style.backgroundColor = "#4C4C4C"; 
+    
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    updateNancayView(yesterday);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const buttonContainer = document.querySelector('.button-container');
+
+    const getNavButtons = () => Array.from(document.querySelectorAll('button[data-action]'));
+
+    // İframe Yüklendiğinde Odağı İframe'e Aktar (PageDown çalışsın diye)
+    dataFrame.addEventListener('load', () => {
+        // İframe içini odakla, böylece PageDown tuşu direkt iframe'i kaydırır
+        dataFrame.contentWindow.focus();
+
+        // Eğer açılan sayfa "local" (Slayt.html, splitmerk.html vs) ise 
+        // iframe içindeyken bile Alt+PageDown çalışmasını sağlamak için proxy script atılır
+        try {
+            if (dataFrame.contentDocument) {
+                dataFrame.contentDocument.addEventListener('keydown', function(e) {
+                    if (e.altKey && (e.key === "PageDown" || e.key === "PageUp")) {
+                        e.preventDefault();
+                        const proxyEvent = new KeyboardEvent('keydown', {
+                            key: e.key,
+                            altKey: true,
+                            bubbles: true
+                        });
+                        window.dispatchEvent(proxyEvent);
+                    }
+                });
+            }
+        } catch (error) {
+            // Farklı sitelerde (EMSC, NOAA) güvenlik gereği (CORS) bu adım atlanır.
+            // Sayfa açıldığında sadece aşağı kaydırma (PageDown) direkt çalışır.
+        }
+    });
+
+    // Ana Tıklama Olayları
+    buttonContainer.addEventListener('click', (event) => {
+        const button = event.target.closest('button');
+        if (!button) return;
+
+        if (button.id === 'btnDigerMenu' || button.id === 'btnSpektrograf' || button.classList.contains('neutron-btn')) {
+            return;
+        }
+
+        const { action, url } = button.dataset;
+        if (!action) return;
+
+        document.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+
+        switch (action) {
+            case 'local': showLocal(url); break;
+            case 'iframe': showIframe(url); break;
+            case 'demon': showDemon(url); break;
+            case 'sansa': showSansaInfo(url); break;
+            case 'xray': showXrayArchive(); break;
+            case 'orfess2': showOrfess2(); break;
+            case 'nancay': showNancay(); break;
+        }
+    });
+
+    // KLAVYE KISAYOLU (Alt + PageDown / Alt + PageUp)
+    document.addEventListener('keydown', function(e) {
+        if (e.altKey && (e.key === "PageDown" || e.key === "PageUp")) {
+            e.preventDefault();
+
+            const navButtons = getNavButtons();
+            if (navButtons.length === 0) return;
+
+            let currentIndex = navButtons.findIndex(btn => btn.classList.contains('active'));
+            if (currentIndex === -1) currentIndex = 0;
+
+            if (e.key === "PageDown") {
+                currentIndex = (currentIndex + 1) % navButtons.length;
+            } else {
+                currentIndex = (currentIndex - 1 + navButtons.length) % navButtons.length;
+            }
+
+            const targetButton = navButtons[currentIndex];
+            targetButton.click(); 
+        }
+    });
+    
+    document.getElementById('loadXrayBtn').addEventListener('click', loadXrayImage);
+
+    document.getElementById('nancayPrevBtn').addEventListener('click', () => {
+        if (currentNancayDate) {
+            currentNancayDate.setDate(currentNancayDate.getDate() - 1);
+            updateNancayView(new Date(currentNancayDate));
+        }
+    });
+
+    document.getElementById('nancayNextBtn').addEventListener('click', () => {
+        if (currentNancayDate) {
+            currentNancayDate.setDate(currentNancayDate.getDate() + 1);
+            updateNancayView(new Date(currentNancayDate));
+        }
+    });
+
+    const startBtn = document.getElementById('btnSplitMerk');
+    if(startBtn) {
+        startBtn.click();
+    } else {
+        showLocal('splitmerk.html');
+    }
+});
+</script>
+</body>
+</html>
